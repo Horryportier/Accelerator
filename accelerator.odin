@@ -16,9 +16,9 @@ AcceleratorError :: enum {
 	WindowHandleArledyExists,
 }
 
-AccelResult :: union($T: typeid) {
+AccelResult :: union($T: typeid, $E: typeid) {
 	T,
-	AcceleratorError,
+	E,
 }
 
 Window :: struct {
@@ -29,13 +29,11 @@ Window :: struct {
 VAO :: u32
 VBO :: u32
 
-ShaderProgram :: u32
 
 RenderData :: struct {
 	vertices: [dynamic]f32,
 	vao:      VAO,
 	vbo:      VBO,
-	shader:   ShaderProgram,
 }
 
 

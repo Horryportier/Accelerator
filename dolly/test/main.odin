@@ -3,16 +3,17 @@ package dolly_test
 
 import "core:c"
 import "core:fmt"
-
+import "core:math"
 import "core:os"
+
 import gl "vendor:OpenGL"
 import "vendor:glfw"
 
 
 PROGRAMNAME :: "Program"
 
-GL_MAJOR_VERSION: c.int : 3
-GL_MINOR_VERSION :: 3
+GL_MAJOR_VERSION: c.int : 4
+GL_MINOR_VERSION :: 6
 
 running: b32 = true
 
@@ -70,37 +71,30 @@ main :: proc() {
 	vertices1 := [?]f32 {
 		0.5,
 		0.5,
-		0.0, // top right
-		0.5,
-		-0.5,
-		0.0, // bottom right
-		-0.5,
-		-0.5,
-		0.0, // bottom let
-		-0.5,
-		0.5,
-		0.0, // top let 
-	}
-	vertices2 := [?]f32 {
-		0.5,
-		0.5,
-		0.0, // 0 top right
-		0.5,
-		-0.5,
-		0.0, // 1 bottom right
-		-0.5,
-		0.5,
+		0.0,
+		1.0,
+		0.0,
 		0.0,
 		0.5,
 		-0.5,
 		0.0,
+		0.0,
+		1.0,
+		0.0,
 		-0.5,
 		-0.5,
-		0.0, // 2 bottom let
+		0.0,
+		0.0,
+		0.0,
+		1.0,
 		-0.5,
 		0.5,
-		0.0, // 3 top let 
+		0.0,
+		1.0,
+		0.0,
+		1.0,
 	}
+
 
 	indices := [6]i32{0, 1, 3, 1, 2, 3}
 
@@ -127,9 +121,10 @@ main :: proc() {
 		gl.STATIC_DRAW,
 	)
 
-
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 3 * size_of(f32), 0)
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 6 * size_of(f32), 0)
 	gl.EnableVertexAttribArray(0)
+	gl.VertexAttribPointer(1, 3, gl.FLOAT, gl.FALSE, 6 * size_of(f32), 3 * size_of(f32))
+	gl.EnableVertexAttribArray(1)
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 
@@ -137,10 +132,12 @@ main :: proc() {
 	for (!glfw.WindowShouldClose(window) && running) {
 		gl.ClearColor(0.1, 0.1, 0.1, 1)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
+		time := glfw.GetTime()
+		brightnesss: f32 = cast(f32)(math.sin(time) / 2.0) + 0.5
+		gl.Uniform1f(gl.GetUniformLocation(program_shader, "brighteness"), brightnesss)
 
 		gl.UseProgram(program_shader)
 		gl.BindVertexArray(gloabal_vao)
-		//gl.DrawArrays(gl.TRIANGLES, 0, 6)
 		gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, rawptr(uintptr(0)))
 
 		glfw.SwapBuffers(window)
