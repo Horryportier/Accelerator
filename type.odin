@@ -16,3 +16,7 @@ color_from_u8 :: proc(r, g, b, a: u8) -> Color {
 		math.remap(cast(f32)a, 0, 255, 0, 1),
 	}
 }
+
+Vec3 :: [3]f32
+Vec2 :: [2]f32
+Vec4 :: [4]f32

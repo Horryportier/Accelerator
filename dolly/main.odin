@@ -5,8 +5,12 @@ import accel "../"
 
 window_setup: accel.Window = {640, 360, "Dolly"}
 
+
+MAX_VERTICES :: 3
+
 World :: struct {
 	clear_color: accel.Color,
+	vertices:    [MAX_VERTICES]accel.Vec3,
 }
 
 world: World
@@ -35,6 +39,11 @@ main :: proc() {
 init :: proc() {
 	world = World {
 		clear_color = accel.color(65, 69, 255, 255),
+		vertices    = [MAX_VERTICES]accel.Vec3 {
+			{-0.5, -0.5, 0.0},
+			{0.5, -0.5, 0.0},
+			{0.0, -0.5, 0.0},
+		},
 	}
 }
 

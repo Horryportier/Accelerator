@@ -26,16 +26,29 @@ Window :: struct {
 	title:         cstring,
 }
 
-window: glfw.WindowHandle
+VAO :: u32
+VBO :: u32
 
-running: bool = true
+ShaderProgram :: u32
+
+RenderData :: struct {
+	vertices: [dynamic]f32,
+	vao:      VAO,
+	vbo:      VBO,
+	shader:   ShaderProgram,
+}
+
 
 CustomKeyCallback :: proc(key, scancode, action, mods: c.int)
-
 custom_key_callback: CustomKeyCallback = proc(key, scancode, action, mods: c.int) {}
 
-init_window :: proc(using window_settings: Window) -> AcceleratorError {
+window: glfw.WindowHandle
+running: bool = true
 
+render_data: RenderData
+
+
+init_window :: proc(using window_settings: Window) -> AcceleratorError {
 	glfw.WindowHint(glfw.RESIZABLE, 1)
 	glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, GL_MAJOR_VERSION)
 	glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, GL_MINOR_VERSION)
@@ -55,7 +68,34 @@ init_window :: proc(using window_settings: Window) -> AcceleratorError {
 	glfw.SetErrorCallback(error_callback)
 	glfw.SetFramebufferSizeCallback(window, framebuffer_size_callback)
 	gl.load_up_to(int(GL_MAJOR_VERSION), int(GL_MINOR_VERSION), glfw.gl_set_proc_address)
+	render_data = {}
 	return .OK
+}
+
+add_vertice :: proc(v: Vec3) {
+	append(&render_data.vertices, v.x)
+	append(&render_data.vertices, v.y)
+	append(&render_data.vertices, v.z)
+}
+
+
+setup_vertex_data :: proc(vertices_data: []Vec3) {
+	gl.GenBuffers(1, &render_data.vbo)
+	gl.BindBuffer(gl.ARRAY_BUFFER, render_data.vbo)
+	for v in vertices_data {
+		add_vertice(v)
+	}
+	gl.BufferData(
+		gl.ARRAY_BUFFER,
+		len(render_data.vertices),
+		&render_data.vertices,
+		gl.STATIC_DRAW,
+	)
+
+	vertext_shader_data := cstring(#load("shaders/vertex.glsl"))
+	vertex_shader := gl.CreateShader(gl.VERTEX_SHADER)
+	gl.ShaderSource(vertex_shader, 1, &vertext_shader_data, nil)
+	gl.CompileShader(vertex_shader)
 }
 
 clear_screen :: proc(color: Color) {
@@ -88,6 +128,7 @@ destroy_window :: proc() {
 poll_events :: proc() {
 	glfw.PollEvents()
 }
+
 swap_buffres :: proc() {
 	glfw.SwapBuffers(window)
 }
