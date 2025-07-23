@@ -10,7 +10,6 @@ import "vendor:glfw"
 GL_MAJOR_VERSION: c.int : 4
 GL_MINOR_VERSION :: 6
 
-
 AcceleratorError :: enum {
 	OK,
 	FailedToCreateWindow,
@@ -31,6 +30,10 @@ window: glfw.WindowHandle
 
 running: bool = true
 
+CustomKeyCallback :: proc(key, scancode, action, mods: c.int)
+
+custom_key_callback: CustomKeyCallback = proc(key, scancode, action, mods: c.int) {}
+
 init_window :: proc(using window_settings: Window) -> AcceleratorError {
 
 	glfw.WindowHint(glfw.RESIZABLE, 1)
@@ -41,7 +44,7 @@ init_window :: proc(using window_settings: Window) -> AcceleratorError {
 		log("failed to initialize glfw")
 		return .FailedToCreateWindow
 	}
-	window := glfw.CreateWindow(width, hegiht, title, nil, nil)
+	window = glfw.CreateWindow(width, hegiht, title, nil, nil)
 	if window == nil {
 		destroy_window()
 		return .FailedToCreateWindow
@@ -55,6 +58,11 @@ init_window :: proc(using window_settings: Window) -> AcceleratorError {
 	return .OK
 }
 
+clear_screen :: proc(color: Color) {
+	gl.ClearColor(color.r, color.g, color.b, color.a)
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+}
+
 framebuffer_size_callback :: proc "c" (handle: glfw.WindowHandle, width, height: c.int) {
 	gl.Viewport(0, 0, width, height)
 }
@@ -63,6 +71,8 @@ key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods
 	if key == glfw.KEY_ESCAPE {
 		running = false
 	}
+	context = runtime.default_context()
+	custom_key_callback(key, scancode, action, mods)
 }
 
 error_callback :: proc "c" (error: c.int, msg: cstring) {
@@ -75,13 +85,16 @@ destroy_window :: proc() {
 }
 
 
-update :: proc() {
-	glfw.SwapBuffers(window)
+poll_events :: proc() {
 	glfw.PollEvents()
 }
+swap_buffres :: proc() {
+	glfw.SwapBuffers(window)
+}
+
 
 should_close :: proc() -> bool {
-	return cast(bool)glfw.WindowShouldClose(window) && !running
+	return !cast(bool)glfw.WindowShouldClose(window) && !running
 }
 
 exit :: proc() {
