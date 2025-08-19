@@ -1,141 +1,59 @@
 package accelerator
 
+import sokol_app "sokol-odin/sokol/app"
+import sokol_gfx "sokol-odin/sokol/gfx"
+import sokol_log "sokol-odin/sokol/log"
+
+import "base:intrinsics"
+import "core:c"
+import "core:fmt"
 
 import "base:runtime"
-import "core:c"
 
-import gl "vendor:OpenGL"
-import "vendor:glfw"
-
-GL_MAJOR_VERSION: c.int : 4
-GL_MINOR_VERSION :: 6
-
-AcceleratorError :: enum {
-	OK,
-	FailedToCreateWindow,
-	WindowHandleArledyExists,
+Backend :: enum {
+	Dummy,
+	Sokol,
 }
 
-AccelResult :: union($T: typeid, $E: typeid) {
-	T,
-	E,
-}
+BACKEND: Backend : .Sokol
 
-Window :: struct {
-	width, hegiht: c.int,
-	title:         cstring,
-}
-
-VAO :: u32
-VBO :: u32
-
-
-RenderData :: struct {
-	vertices: [dynamic]f32,
-	vao:      VAO,
-	vbo:      VBO,
-}
-
-
-CustomKeyCallback :: proc(key, scancode, action, mods: c.int)
-custom_key_callback: CustomKeyCallback = proc(key, scancode, action, mods: c.int) {}
-
-window: glfw.WindowHandle
-running: bool = true
-
-render_data: RenderData
-
-
-init_window :: proc(using window_settings: Window) -> AcceleratorError {
-	glfw.WindowHint(glfw.RESIZABLE, 1)
-	glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, GL_MAJOR_VERSION)
-	glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, GL_MINOR_VERSION)
-	glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-	if glfw.Init() != true {
-		log("failed to initialize glfw")
-		return .FailedToCreateWindow
+app :: proc(
+	width, height: c.int,
+	title: cstring,
+	$INIT: proc(),
+	$FRAME: proc(),
+	$CLEANUP: proc(),
+	$EVENT: proc(),
+) {
+	context = runtime.default_context()
+	_init := proc "c" () {
+		context = runtime.default_context()
+		INIT()
 	}
-	window = glfw.CreateWindow(width, hegiht, title, nil, nil)
-	if window == nil {
-		destroy_window()
-		return .FailedToCreateWindow
+	_frame := proc "c" () {
+		context = runtime.default_context()
+		FRAME()
 	}
-	glfw.MakeContextCurrent(window)
-	glfw.SwapInterval(1)
-	glfw.SetKeyCallback(window, key_callback)
-	glfw.SetErrorCallback(error_callback)
-	glfw.SetFramebufferSizeCallback(window, framebuffer_size_callback)
-	gl.load_up_to(int(GL_MAJOR_VERSION), int(GL_MINOR_VERSION), glfw.gl_set_proc_address)
-	render_data = {}
-	return .OK
-}
-
-add_vertice :: proc(v: Vec3) {
-	append(&render_data.vertices, v.x)
-	append(&render_data.vertices, v.y)
-	append(&render_data.vertices, v.z)
-}
-
-
-setup_vertex_data :: proc(vertices_data: []Vec3) {
-	gl.GenBuffers(1, &render_data.vbo)
-	gl.BindBuffer(gl.ARRAY_BUFFER, render_data.vbo)
-	for v in vertices_data {
-		add_vertice(v)
+	_cleanup := proc "c" () {
+		context = runtime.default_context()
+		CLEANUP()
 	}
-	gl.BufferData(
-		gl.ARRAY_BUFFER,
-		len(render_data.vertices),
-		&render_data.vertices,
-		gl.STATIC_DRAW,
+	fmt.printfln("\033[33mEvent loop not implemented\033[0m")
+	_event := proc "c" (a0: ^sokol_app.Event) {
+		context = runtime.default_context()
+		EVENT()
+	}
+	sokol_app.run(
+		{
+			width = width,
+			height = height,
+			window_title = title,
+			init_cb = _init,
+			frame_cb = _frame,
+			cleanup_cb = _cleanup,
+			event_cb = _event,
+			icon = {sokol_default = true},
+			logger = {func = sokol_log.func},
+		},
 	)
-
-	vertext_shader_data := cstring(#load("shaders/vertex.glsl"))
-	vertex_shader := gl.CreateShader(gl.VERTEX_SHADER)
-	gl.ShaderSource(vertex_shader, 1, &vertext_shader_data, nil)
-	gl.CompileShader(vertex_shader)
-}
-
-clear_screen :: proc(color: Color) {
-	gl.ClearColor(color.r, color.g, color.b, color.a)
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-}
-
-framebuffer_size_callback :: proc "c" (handle: glfw.WindowHandle, width, height: c.int) {
-	gl.Viewport(0, 0, width, height)
-}
-
-key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods: c.int) {
-	if key == glfw.KEY_ESCAPE {
-		running = false
-	}
-	context = runtime.default_context()
-	custom_key_callback(key, scancode, action, mods)
-}
-
-error_callback :: proc "c" (error: c.int, msg: cstring) {
-	context = runtime.default_context()
-	logf("opcode: %s, msg: %s", error, msg)
-}
-
-destroy_window :: proc() {
-	glfw.DestroyWindow(window)
-}
-
-
-poll_events :: proc() {
-	glfw.PollEvents()
-}
-
-swap_buffres :: proc() {
-	glfw.SwapBuffers(window)
-}
-
-
-should_close :: proc() -> bool {
-	return !cast(bool)glfw.WindowShouldClose(window) && !running
-}
-
-exit :: proc() {
-	glfw.Terminate()
 }
